@@ -1,4 +1,7 @@
 import streamlit as st
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from PyPDF2 import PdfReader
 import spacy
 from spacy.cli import download as spacy_download
@@ -24,13 +27,19 @@ from typing import List, Union, Dict
 import os
 from dotenv import load_dotenv
 import re
+import subprocess
+from streamlit_chromadb_connection.chromadb_connection import ChromadbConnection
 
-# Ensure SpaCy model is downloaded
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    spacy_download("en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
+configuration = {
+    "client": "PersistentClient",
+    "path": "/tmp/.chroma"
+}
+
+import en_core_web_sm
+nlp = en_core_web_sm.load()
+
+# subprocess.run([f"{sys.executable}", "-m","spacy","download","en_core_web_sm"])
+# nlp = spacy.load('en_core_web_sm')
 
 # Load the API key
 load_dotenv()
@@ -195,8 +204,28 @@ def main():
                 get_vector_store(text_chunks)
                 st.success("Processing Done!")
 
+                # ChromaDB connection
+                conn = st.connection(name="persistent_chromadb",
+                     type=ChromadbConnection,
+                     **configuration)
+                collection_name = "documents_collection"
+                embedding_function_name = "GoogleGenerativeAIEmbeddings"
+                conn.create_collection(collection_name=collection_name,
+                                       embedding_function_name=embedding_function_name,
+                                       embedding_config={},
+                                       metadata={"hnsw:space": "cosine"})
+                st.success("ChromaDB Collection Created!")
+
+                # Add documents to ChromaDB
+                embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+                vectorstore = Chroma(collection_name=collection_name, embedding_function=embeddings)
+                for chunk in text_chunks:
+                    vectorstore.add_texts([chunk])
+                st.success("Documents Added to ChromaDB Collection!")
+
+                # Display documents in ChromaDB
+                documents_collection_df = conn.get_collection_data(collection_name)
+                st.dataframe(documents_collection_df)
+
 if __name__ == "__main__":
     main()
-
-
-
