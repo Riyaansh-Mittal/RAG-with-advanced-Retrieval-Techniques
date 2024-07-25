@@ -29,14 +29,10 @@ from dotenv import load_dotenv
 import re
 import subprocess
 from streamlit_chromadb_connection.chromadb_connection import ChromadbConnection
-temp_dir = st.__cache__()
-temp_chroma_path = os.path.join(temp_dir, "chroma")
-
-os.makedirs(temp_chroma_path, exist_ok=True)
 
 configuration = {
     "client": "PersistentClient",
-    "path": temp_chroma_path
+    "path": "/tmp/.chroma"
 }
 
 import en_core_web_sm
@@ -212,28 +208,31 @@ def main():
                 get_vector_store(text_chunks)
                 st.success("Processing Done!")
 
-                # ChromaDB connection
-                conn = st.connection(name="persistent_chromadb",
-                     type=ChromadbConnection,
-                     **configuration)
-                collection_name = "documents_collection"
-                embedding_function_name = "GoogleGenerativeAIEmbeddings"
-                conn.create_collection(collection_name=collection_name,
-                                       embedding_function_name=embedding_function_name,
-                                       embedding_config={},
-                                       metadata={"hnsw:space": "cosine"})
-                st.success("ChromaDB Collection Created!")
+                try:
+                    # ChromaDB connection
+                    conn = st.connection(name="persistent_chromadb",
+                        type=ChromadbConnection,
+                        **configuration)
+                    collection_name = "documents_collection"
+                    embedding_function_name = "GoogleGenerativeAIEmbeddings"
+                    conn.create_collection(collection_name=collection_name,
+                                           embedding_function_name=embedding_function_name,
+                                           embedding_config={},
+                                           metadata={"hnsw:space": "cosine"})
+                    st.success("ChromaDB Collection Created!")
 
-                # Add documents to ChromaDB
-                embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-                vectorstore = Chroma(collection_name=collection_name, embedding_function=embeddings)
-                for chunk in text_chunks:
-                    vectorstore.add_texts([chunk])
-                st.success("Documents Added to ChromaDB Collection!")
+                    # Add documents to ChromaDB
+                    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+                    vectorstore = Chroma(collection_name=collection_name, embedding_function=embeddings)
+                    for chunk in text_chunks:
+                        vectorstore.add_texts([chunk])
+                    st.success("Documents Added to ChromaDB Collection!")
 
-                # Display documents in ChromaDB
-                documents_collection_df = conn.get_collection_data(collection_name)
-                st.dataframe(documents_collection_df)
+                    # Display documents in ChromaDB
+                    documents_collection_df = conn.get_collection_data(collection_name)
+                    st.dataframe(documents_collection_df)
+                except Exception:
+                    pass
 
 if __name__ == "__main__":
     main()
