@@ -180,12 +180,12 @@ def user_input(user_query, retrieval_method):
         docs = compressed_docs
 
     # Apply LongContextReorder
-    reordering_transformer = LongContextReorder()
-    reordered_docs = reordering_transformer.transform_documents(docs, query=user_query)
+    # reordering_transformer = LongContextReorder()
+    # reordered_docs = reordering_transformer.transform_documents(docs, query=user_query)
     
     chain = get_conversation_chain_pdf()
     response = chain(
-        {"input_documents": reordered_docs, "question": user_query},
+        {"input_documents": docs, "question": user_query},
         return_only_outputs=True
     )
     st.write("AI_Response", response["output_text"])
