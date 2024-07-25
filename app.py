@@ -34,6 +34,7 @@ configuration = {
     "client": "PersistentClient",
     "path": "/tmp/.chroma"
 }
+os.makedirs(configuration["path"], exist_ok=True)
 
 import en_core_web_sm
 nlp = en_core_web_sm.load()
