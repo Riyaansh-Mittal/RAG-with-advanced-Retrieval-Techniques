@@ -16,7 +16,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.vectorstores import Chroma
-from langchain.document_transformers import EmbeddingsRedundantFilter
+from langchain.document_transformers import EmbeddingsRedundantFilter, LongContextReorder
 from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.retrievers import ContextualCompressionRetriever
@@ -179,9 +179,13 @@ def user_input(user_query, retrieval_method):
         compressed_docs = compression_retriever.get_relevant_documents(user_query)
         docs = compressed_docs
 
+    # Apply LongContextReorder
+    reordering_transformer = LongContextReorder()
+    reordered_docs = reordering_transformer.transform_documents(docs, query=user_query)
+    
     chain = get_conversation_chain_pdf()
     response = chain(
-        {"input_documents": docs, "question": user_query},
+        {"input_documents": reordered_docs, "question": user_query},
         return_only_outputs=True
     )
     st.write("AI_Response", response["output_text"])
