@@ -29,12 +29,15 @@ from dotenv import load_dotenv
 import re
 import subprocess
 from streamlit_chromadb_connection.chromadb_connection import ChromadbConnection
+temp_dir = st.__cache__()
+temp_chroma_path = os.path.join(temp_dir, "chroma")
+
+os.makedirs(temp_chroma_path, exist_ok=True)
 
 configuration = {
     "client": "PersistentClient",
-    "path": "/tmp/.chroma"
+    "path": temp_chroma_path
 }
-os.makedirs(configuration["path"], exist_ok=True)
 
 import en_core_web_sm
 nlp = en_core_web_sm.load()
